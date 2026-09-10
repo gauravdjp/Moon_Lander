@@ -23,46 +23,73 @@ class MenuView(arcade.View):
     def __init__(self):
         super().__init__()
         self.starfield = Starfield(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.camera = None
+        self._text_title = None
+        self._text_play = None
+        self._text_controls = None
+        self._text_pad = None
+        self._text_exit = None
 
     def on_show_view(self):
         arcade.set_background_color(arcade.color.BLACK)
+        self.camera = arcade.Camera2D()
+        self._create_texts()
+
+    def _create_texts(self):
+        w = self.window.width
+        h = self.window.height
+        self._text_title = arcade.Text(
+            "MOON LANDER", w / 2, h / 2 + 80,
+            arcade.color.WHITE, 52,
+            anchor_x="center", anchor_y="center",
+            bold=True, font_name="Arial"
+        )
+        self._text_play = arcade.Text(
+            "Press ENTER to play", w / 2, h / 2 - 10,
+            (210, 210, 210), 20,
+            anchor_x="center", anchor_y="center",
+            font_name="Arial"
+        )
+        self._text_controls = arcade.Text(
+            "UP: Thrust   LEFT/RIGHT: Rotate",
+            w / 2, h / 2 - 60,
+            (160, 160, 160), 15,
+            anchor_x="center", anchor_y="center",
+            font_name="Arial"
+        )
+        self._text_pad = arcade.Text(
+            "Land on the green pad!",
+            w / 2, h / 2 - 90,
+            arcade.color.YELLOW_GREEN, 16,
+            anchor_x="center", anchor_y="center",
+            font_name="Arial"
+        )
+        self._text_exit = arcade.Text(
+            "F11: Toggle Fullscreen   |   ESC: Exit",
+            w / 2, h / 2 - 130,
+            (140, 140, 140), 14,
+            anchor_x="center", anchor_y="center",
+            font_name="Arial"
+        )
+
+    def on_resize(self, width: int, height: int):
+        super().on_resize(width, height)
+        if self.camera:
+            self.camera.match_window()
+        self._create_texts()
 
     def on_draw(self):
         self.clear()
+        if self.camera:
+            self.camera.use()
         self.starfield.draw()
 
-        w = self.window.width
-        h = self.window.height
-
-        arcade.draw_text(
-            "MOON LANDER", w / 2, h / 2 + 80,
-            arcade.color.WHITE, 50,
-            anchor_x="center", anchor_y="center",
-            bold=True,
-        )
-        arcade.draw_text(
-            "Press ENTER to play", w / 2, h / 2 - 10,
-            (180, 180, 180), 20,
-            anchor_x="center", anchor_y="center",
-        )
-        arcade.draw_text(
-            "UP: Thrust   LEFT/RIGHT: Rotate",
-            w / 2, h / 2 - 60,
-            (120, 120, 120), 15,
-            anchor_x="center", anchor_y="center",
-        )
-        arcade.draw_text(
-            "Land on the green pad!",
-            w / 2, h / 2 - 90,
-            arcade.color.YELLOW_GREEN, 15,
-            anchor_x="center", anchor_y="center",
-        )
-        arcade.draw_text(
-            "ESC: Exit",
-            w / 2, h / 2 - 130,
-            (100, 100, 100), 13,
-            anchor_x="center", anchor_y="center",
-        )
+        if self._text_title:
+            self._text_title.draw()
+            self._text_play.draw()
+            self._text_controls.draw()
+            self._text_pad.draw()
+            self._text_exit.draw()
 
     def on_update(self, delta_time):
         self.starfield.update(delta_time)
@@ -72,6 +99,8 @@ class MenuView(arcade.View):
             game = GameView()
             game.setup()
             self.window.show_view(game)
+        elif key == arcade.key.F11:
+            self.window.set_fullscreen(not self.window.fullscreen)
         elif key == arcade.key.ESCAPE:
             arcade.exit()
 
@@ -130,6 +159,13 @@ class GameView(arcade.View):
 
     def on_show_view(self):
         arcade.set_background_color(arcade.color.BLACK)
+
+    def on_resize(self, width: int, height: int):
+        super().on_resize(width, height)
+        if self.game_camera:
+            self.game_camera.match_window()
+        if self.hud_camera:
+            self.hud_camera.match_window()
 
     # -- Drawing --------------------------------------------------------
 
@@ -280,6 +316,8 @@ class GameView(arcade.View):
         elif key in (arcade.key.R, arcade.key.RETURN):
             if self.lander.landed or self.lander.crashed or self.lander.wrong_spot:
                 self.setup()
+        elif key == arcade.key.F11:
+            self.window.set_fullscreen(not self.window.fullscreen)
         elif key == arcade.key.ESCAPE:
             self.sounds.stop_thrust()
             self.window.show_view(MenuView())
@@ -330,8 +368,10 @@ class GameView(arcade.View):
 
 def main():
     window = arcade.Window(
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
         title="Moon Lander",
-        fullscreen=True,
+        fullscreen=False,
         resizable=True,
     )
     window.show_view(MenuView())
